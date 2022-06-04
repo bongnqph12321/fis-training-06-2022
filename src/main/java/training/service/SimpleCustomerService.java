@@ -1,6 +1,8 @@
 package training.service;
 
 import training.domain.Customer;
+import training.exception.DuplicateCustomerException;
+import training.exception.InvalidCustomerException;
 import training.store.InMemoryCustomerStore;
 
 
@@ -40,10 +42,27 @@ public class SimpleCustomerService implements CustomerService{
     }
 
     private void checkDuplicate(Customer customer) {
+        if(customerStore.findAll().stream().filter(c -> {
+            return c.getMobile().equals(customer.getMobile());
+        }).findFirst().isPresent())
+            throw  new DuplicateCustomerException(customer,String.format(
+                    "Customer with phone number %s is duplicate",customer.getMobile()));
     }
 
     private void validate(Customer customer) {
+        if(!isNullOrEmpty(customer.getName())) {
+            throw new InvalidCustomerException(customer,"Customer name is empty");
+        }
 
+        if(!isNullOrEmpty(customer.getMobile())) {
+            throw new InvalidCustomerException(customer,"Mobile is empty");
+        }
+    }
+
+    private boolean isNullOrEmpty(String id) {
+        if(id == null) return false;
+        if(id.trim().length() == 0) return false;
+        return true;
     }
 
     @Override
@@ -72,8 +91,9 @@ public class SimpleCustomerService implements CustomerService{
 
     @Override
     public List<Customer> findAllOrderByNameLimit(int limit) {
-        //TODO: Implement method tho dung dac ta cua CustomerService interface
-        return null;
+        return customerStore.findAll().stream()
+                .sorted(Comparator.comparing(Customer::getName))
+                .limit(limit).collect(Collectors.toList());
     }
 
     @Override
